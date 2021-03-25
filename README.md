@@ -1,1 +1,1 @@
-# BBKHXFgrafikaRep
+A feladatomnak egy új naprendszer bemutatását választottam. A célom, hogy a 'W','A','S','D' gombokkal lehessen előre-hátra, jobbra-balra mozogni. A 'C' és 'Space' gombokkal lehetne le éf fel mozogni. A 'Q' gombbal meg lehetne állítani vagy elindítani a bolgók forgását, az 'E' gombbal pedig megállítani és elindítani lehetne a keringést. Az 'F' gombot lenyomva pedig az új naprendszert felfedző műhold elhaladását tudnánk megnézni. Minden bolgyó más sebességgel keringene a nap körül. A forgási sebebsségük is más lenne.
