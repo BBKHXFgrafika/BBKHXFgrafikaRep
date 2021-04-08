@@ -539,7 +539,7 @@ void init_entities(World *world) {
     scale_model(&world->satellite.model, 12, 12, 12);
 
     //Load the skybox texture.
-    world->skybox.texture = load_texture("textures\\sky.png");
+    world->skybox.texture = load_texture("textures\\sky.jpg");
 
     //Storing bounding-box coordinates in each model
     calc_bounding_box(&world->planet1.model);

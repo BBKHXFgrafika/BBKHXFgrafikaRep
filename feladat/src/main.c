@@ -74,7 +74,7 @@ void reshape(GLsizei width, GLsizei height) {
     glLoadIdentity();
 
     if (!help_on) {
-        gluPerspective(50.0, (GLdouble) width / (GLdouble) height, 0.1, 20000.0);
+        gluPerspective(50.0, (GLdouble) width / (GLdouble) height, 0.1, -1);
     } else {
         gluOrtho2D(0, width, height, 0);
     }
@@ -421,7 +421,7 @@ void initialize() {
     glClearDepth(1.0);
 
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, light_ambient);
-    help = load_texture("..\\textures\\help.png");
+    help = load_texture("textures\\help.png");
     init_entities(&world);
     glEnable(GL_TEXTURE_2D);
 }
