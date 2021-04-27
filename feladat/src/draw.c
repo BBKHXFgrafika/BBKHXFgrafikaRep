@@ -1,43 +1,14 @@
+#include "draw.h"
 #include <controller.h>
 #include <math.h>
-#include "draw.h"
 
 #define SKYBOX_SCALE 10000.0
 
-GLfloat light_ambient[] = {0.5, 0.5, 0.5, 0};
-
-void draw_triangles(const Model *model) {
-    int i, k;
-    int vertex_index, texture_index, normal_index;
-    float x, y, z, u, v;
-
-    glBegin(GL_TRIANGLES);
-
-    for (i = 0; i < model->n_triangles; ++i) {
-        for (k = 0; k < 3; ++k) {
-
-            normal_index = model->triangles[i].points[k].normal_index;
-            x = model->normals[normal_index].x;
-            y = model->normals[normal_index].y;
-            z = model->normals[normal_index].z;
-            glNormal3f(x, y, z);
-
-            texture_index = model->triangles[i].points[k].texture_index;
-            u = model->texture_vertices[texture_index].u;
-            v = model->texture_vertices[texture_index].v;
-            glTexCoord2f(u, 1.0 - v);
-
-            vertex_index = model->triangles[i].points[k].vertex_index;
-            x = model->vertices[vertex_index].x;
-            y = model->vertices[vertex_index].y;
-            z = model->vertices[vertex_index].z;
-            glVertex3f(x, y, z);
-        }
-    }
-
-    glEnd();
+void init_draw(Rotate *rotate) {
+    double *planetsToAdd[6] = {&rotate->jupiter_rotation, &rotate->jupiter_moon_rotation, &rotate->venus_rotation,
+                               &rotate->saturnus_rotation, &rotate->sun_rotation, &rotate->satellite_rotation};
+    memcpy(rotate->planets, planetsToAdd, sizeof(planetsToAdd));
 }
-
 
 void draw_quads(const struct Model *model) {
     int i, k;
@@ -73,7 +44,6 @@ void draw_bounding_box(const Model *model) {
 }
 
 void draw_model(const Model *model) {
-    // draw_triangles(model);
     draw_quads(model);
     // draw_bounding_box(model);
 }
@@ -134,105 +104,67 @@ void draw_skybox(Entity skybox, int z_sign) {
 void draw_environment(World *world, Rotate *rotate, Move *move, double timer) {
     glEnable(GL_TEXTURE_2D);
 
-    //Draw the bottom skybox.
+    for (int i = 0; i < 6; ++i) {
+        glPushMatrix();
+        glTranslatef(move->planets[i]->x, move->planets[i]->y, move->planets[i]->z);
+        glMaterialfv(GL_FRONT, GL_AMBIENT, world->planets[i]->material_ambient);
+
+        if (i == 5) {  // Switching textures in case of satellite.
+            double actual_t = (double) glutGet(GLUT_ELAPSED_TIME);
+            if (actual_t - timer > 2000) {
+                glBindTexture(GL_TEXTURE_2D, world->planets[i]->texture2);
+            } else {
+                glBindTexture(GL_TEXTURE_2D, world->planets[i]->texture);
+            }
+        } else {
+            glBindTexture(GL_TEXTURE_2D, world->planets[i]->texture);
+        }
+
+        glScalef(1.0f, 1.0f, 1.0f);
+
+        if (i == 0 || i == 1) {                                 // Jupiter and its moon
+            glRotatef(*rotate->planets[i], 0, 0, 1);
+        } else if (i == 2 || i == 3) {                          // Venus, Saturnus
+            glRotatef(*rotate->planets[i], 0, 0, -1);
+        } else if (i == 4) {                                    //Sun
+            glRotatef(*rotate->planets[i], 1, 1, 1);
+        } else if (i == 5) {                                    // Satellite
+            glRotatef(90, 1, 0, 0);
+            glRotatef(270, 0, 1, 0);
+            glRotatef(*rotate->planets[i], 0, 0, 1);
+        }
+
+        draw_model(&world->planets[i]->model);
+        glPopMatrix();
+    }
+
     draw_skybox(world->skybox, 0);
-
-    //Draw the top skybox.
     draw_skybox(world->skybox, 1);
-
-    //Draw the sun.
-    glPushMatrix();
-    glTranslatef(0, 0, 0);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, world->sun.material_ambient);
-    glBindTexture(GL_TEXTURE_2D, world->sun.texture);
-    glScalef(1.0f, 1.0f, 1.0f);
-    glRotatef(rotate->sun_rotation, 1, 1, 1);
-    draw_model(&world->sun.model);
-    glPopMatrix();
-
-    //Draw the Jupiter
-    glPushMatrix();
-    glTranslatef(move->jupiter.x, move->jupiter.y, move->jupiter.z);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, world->jupiter.material_ambient);
-    glBindTexture(GL_TEXTURE_2D, world->jupiter.texture);
-    glScalef(1.0f, 1.0f, 1.0f);
-    glRotatef(rotate->jupiter_rotation, 0, 0, 1);
-    draw_model(&world->jupiter.model);
-
-    glPopMatrix();
-
-
-    //Draw the moon of the dark Jupiter, so it is relative to the movement of planet 1.
-    glPushMatrix();
-    glTranslatef(move->jupiter.x + 1000, move->jupiter.y + 1000, move->jupiter.z - 100);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, world->jupiter_moon.material_ambient);
-    glBindTexture(GL_TEXTURE_2D, world->jupiter_moon.texture);
-    glScalef(1.0f, 1.0f, 1.0f);
-    glRotatef(180, 0, 0, 1);
-    glRotatef(rotate->jupiter_moon_rotation, 0, 0, 1);
-    draw_model(&world->jupiter_moon.model);
-
-    glPopMatrix();
-
-
-    //Draw Venus
-    glPushMatrix();
-    glTranslatef(move->venus.x, move->venus.y, move->venus.z);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, world->venus.material_ambient);
-    glBindTexture(GL_TEXTURE_2D, world->venus.texture);
-    glScalef(1.0f, 1.0f, 1.0f);
-    glRotatef(rotate->venus_rotation, 0, 0, -1);
-    draw_model(&world->venus.model);
-    glPopMatrix();
-
-    //Draw Saturnus
-    glPushMatrix();
-    glTranslatef(move->saturnus.x, move->saturnus.y, move->saturnus.z);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, world->saturnus.material_ambient);
-    glBindTexture(GL_TEXTURE_2D, world->saturnus.texture);
-    glScalef(1.0f, 1.0f, 1.0f);
-    glRotatef(rotate->saturnus_rotation, 0, 0, -1);
-    draw_model(&world->saturnus.model);
-    glPopMatrix();
-
-    //Draw the satellite.
-	glPushMatrix();
-	glTranslatef(move->satellite.x, move->satellite.y, move->satellite.z);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, world->satellite.material_ambient);
-
-	// switching texture if two seconds lasts
-	// e_time variable is reset in change_satellite_texture. The delay
-	// of resetting e_time means the blinked interval of the sat led.
-	double actual_t = (double) glutGet(GLUT_ELAPSED_TIME);
-	if (actual_t - timer > 2000) {
-		glBindTexture(GL_TEXTURE_2D, world->satellite.texture2);
-	} else {
-		glBindTexture(GL_TEXTURE_2D, world->satellite.texture);
-	}
-	glRotatef(90, 1, 0, 0);
-	glRotatef(270, 0, 1, 0);
-	glScalef(1.0f, 1.0f, 1.0f);
-	glRotatef(rotate->satellite_rotation, 0, 0, 1);
-	draw_model(&world->satellite.model);
-	glPopMatrix();
 }
 
-// Determines whether the satellite is inside the planet's field of gravity. The radius is coming from
-// the bounding box diagonal of the planet, calculated by the specific method in model.c
 bool is_point_inside_spheres(double x, double y, double z, double x2, double y2, double z2, double radius) {
     return vector_length(x, y, z, x2, y2, z2) < radius;
 }
 
 void reshape(GLsizei width, GLsizei height) {
-    data.WINDOW_WIDTH = width;
-    data.WINDOW_HEIGHT = height;
+    window.window_width = width;
+    window.window_height = height;
 
-    glViewport(0, (height - 768) / 2, width, 768);
+    double ratio = (double) width / height;
+    int w_depend_on_h, h_depend_on_w;
+    if (ratio > 1.77) {
+        w_depend_on_h = (int) ((double) height * 1.77);
+        glViewport((width - w_depend_on_h) / 2, 0, w_depend_on_h, height);
+    } else {
+        h_depend_on_w = (int) ((double) width / 1.77);
+        glViewport(0, (height - h_depend_on_w) / 2, width, h_depend_on_w);
+    }
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    if (!data.help_on) {
-        gluPerspective(50.0, (GLdouble) width / (GLdouble) 768, 0.1, 20000.0);
+    if (!action.help_on) {
+        gluPerspective(50.0, (GLdouble) width / ((GLdouble) width / 1.77), 0.1, 20000.0);
     } else {
         gluOrtho2D(0, width, height, 0);
     }
@@ -243,58 +175,58 @@ void draw_help() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, data.help);
+    glBindTexture(GL_TEXTURE_2D, action.help);
     glBegin(GL_QUADS);
     glTexCoord2f(0, 0);
     glVertex3f(0, 0, 0);
     glTexCoord2f(1, 0);
-    glVertex3f(data.WINDOW_WIDTH, 0, 0);
+    glVertex3f(window.window_width, 0, 0);
     glTexCoord2f(1, 1);
-    glVertex3f(data.WINDOW_WIDTH, data.WINDOW_HEIGHT, 0);
+    glVertex3f(window.window_width, window.window_height, 0);
     glTexCoord2f(0, 1);
-    glVertex3f(0, data.WINDOW_HEIGHT, 0);
+    glVertex3f(0, window.window_height, 0);
     glEnd();
     glDisable(GL_TEXTURE_2D);
 
-    reshape(data.WINDOW_WIDTH, data.WINDOW_HEIGHT);
+    reshape(window.window_width, window.window_height);
     glutSwapBuffers();
-}
-
-double calc_elapsed_time() {
-    int current_time;
-    double elapsed_time;
-    current_time = glutGet(GLUT_ELAPSED_TIME);
-    elapsed_time = (double) (current_time - data.previous_time) / 1000.0;
-    data.previous_time = current_time;
-    return elapsed_time;
 }
 
 // The delay of resetting e_time means the time of the led operation on the sat.
 // Texture change in the draw_environment() method.
 void set_satellite_led_working_time() {
-    data.e_time = (double) glutGet(GLUT_ELAPSED_TIME);
+    window.e_time = (double) glutGet(GLUT_ELAPSED_TIME);
     glutTimerFunc(3000, set_satellite_led_working_time, 0);
 }
 
 void display() {
-    if (!data.help_on) {
+    if (!action.help_on) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        double elapsed_time = calc_elapsed_time();
-        update_camera_position(&camera, &action, &move, light_ambient, elapsed_time);
+        update_camera_position(&camera, &move);
         set_view_point(&camera);
 
-        glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient);
+        glLightfv(GL_LIGHT1, GL_AMBIENT, action.light_ambient);
         glEnable(GL_LIGHT1);
 
-        draw_environment(&world, &rotate, &move, data.e_time);
+        draw_environment(&world, &rotate, &move, window.e_time);
         movement_of_objects(&move, &action, &world);
         rotation_of_objects(&action, &rotate);
-        reshape(data.WINDOW_WIDTH, data.WINDOW_HEIGHT);
+        reshape(window.window_width, window.window_height);
         glutSwapBuffers();
     } else {
         draw_help();
+    }
+
+    if (action.increase_light == TRUE) {
+        if (action.light_ambient[0] < 1)
+            action.light_ambient[0] = action.light_ambient[1] = action.light_ambient[2] += 0.01;
+    }
+
+    if (action.decrease_light == TRUE) {
+        if (action.light_ambient[0] > -0.51)
+            action.light_ambient[0] = action.light_ambient[1] = action.light_ambient[2] -= 0.01;
     }
 }
 

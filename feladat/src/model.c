@@ -1,45 +1,15 @@
 #include "model.h"
 #include "load.h"
-#include <stdlib.h>
 #include <math.h>
 
-void init_model(Model* model)
-{
-    model->n_vertices = 1;
-    model->n_texture_vertices = 1;
-    model->n_normals = 1;
-    model->n_triangles = 0;
-    model->n_quads = 0;
-}
+void scale_model(struct Model *model, double sx, double sy, double sz) {
+    int i;
 
-void allocate_model(Model* model)
-{
-    model->vertices = (struct Vertex *) malloc((model->n_vertices + 1) * sizeof(struct Vertex));
-    model->texture_vertices = (struct TextureVertex *) malloc(
-            (model->n_texture_vertices + 1) * sizeof(struct TextureVertex));
-    model->normals = (struct Vertex *) malloc((model->n_normals + 1) * sizeof(struct Vertex));
-    model->triangles = (struct Triangle *) malloc(model->n_triangles * sizeof(struct Triangle));
-    model->quads = (struct Quad *) malloc(model->n_quads * sizeof(struct Quad));
-}
-
-void free_model(Model* model)
-{
-    if (model->vertices != NULL) {
-        free(model->vertices);
+    for (i = 0; i < model->n_vertices; ++i) {
+        model->vertices[i].x *= sx;
+        model->vertices[i].y *= sy;
+        model->vertices[i].z *= sz;
     }
-    if (model->texture_vertices != NULL) {
-        free(model->texture_vertices);
-    }
-    if (model->normals != NULL) {
-        free(model->normals);
-    }
-    if (model->triangles != NULL) {
-        free(model->triangles);
-    }
-    if (model->quads != NULL) {
-        free(model->quads);
-    }
-
 }
 
 void calc_bounding_box(struct Model *model) {
@@ -76,12 +46,7 @@ void calc_bounding_box(struct Model *model) {
             max_z = z;
         }
     }
-    /*printf("Bounding box:\n");
-    printf("x in [%lf, %lf]\n", min_x, max_x);
-    printf("y in [%lf, %lf]\n", min_y, max_y);
-    printf("z in [%lf, %lf]\n", min_z, max_z);*/
 
-    // setting the coordinates of the bounding box for the specific model
     model->box.minVertex.x = min_x;
     model->box.minVertex.y = min_y;
     model->box.minVertex.z = min_z;
@@ -90,63 +55,52 @@ void calc_bounding_box(struct Model *model) {
     model->box.maxVertex.z = max_z;
 
     model->box.diagonal_length = vector_length(min_x, min_y, min_z, max_x, max_y, max_z);
-    //printf("Bbox diagonal length: %f \n", model->box.diagonal_length);
 
-}
-
-void scale_model(struct Model *model, double sx, double sy, double sz) {
-    int i;
-
-    for (i = 0; i < model->n_vertices; ++i) {
-        model->vertices[i].x *= sx;
-        model->vertices[i].y *= sy;
-        model->vertices[i].z *= sz;
-    }
 }
 
 void init_entities(World *world) {
-    //Load the Jupiter object and texture.
-    load_model("objects\\geoid.obj", &world->jupiter.model);
-    world->jupiter.texture = load_texture("textures\\planet2.png");
-    scale_model(&world->jupiter.model, 0.4, 0.4, 0.4);
+    Entity *planetsToAdd[7] = {&world->jupiter, &world->jupiter_moon, &world->venus,
+                               &world->saturnus, &world->sun, &world->satellite, &world->skybox};
+    memcpy(world->planets, planetsToAdd, sizeof(planetsToAdd));
 
-    //Load the moon of Jupiter and texture.
-    load_model("objects\\geoid.obj", &world->jupiter_moon.model);
-    world->jupiter_moon.texture = load_texture("textures\\planet3.png");
-    scale_model(&world->jupiter_moon.model, 0.2, 0.2, 0.2);
+    for (int i = 0; i < 5; ++i) {
+        if (i >= 0 && i <= 2 || i == 4) {
+            load_model("objects\\geoid.obj", &world->planets[i]->model);
+            char msgOut[50];
+            snprintf(msgOut,sizeof(msgOut), "textures\\planet%d.png", i);
+            world->planets[i]->texture = load_texture(msgOut);
+        }
+    }
 
-    //Load the Venus and texture.
-    load_model("objects\\geoid.obj", &world->venus.model);
-    world->venus.texture = load_texture("textures\\planet1.png");
-    scale_model(&world->venus.model, 0.5, 0.5, 0.5);
-
-    //Load the Saturnus and texture.
     load_model("objects\\saturn.obj", &world->saturnus.model);
-    world->saturnus.texture = load_texture("textures\\planet4.jpg");
-    scale_model(&world->saturnus.model, 0.2, 0.2, 0.2);
+    world->saturnus.texture = load_texture("textures\\planet3.jpg");
 
-    //Load the Sun object and texture.
-    load_model("objects\\geoid.obj", &world->sun.model);
-    world->sun.texture = load_texture("textures\\sun.png");
-    scale_model(&world->sun.model, 2, 2, 2);
-
-    //Load the satellite object and texture.
     load_model("objects\\satellite.obj", &world->satellite.model);
     world->satellite.texture = load_texture("textures\\satellite.jpg");
     world->satellite.texture2 = load_texture("textures\\satellite2.jpg");
 
+    world->jupiter.size = 200;
+    world->jupiter_moon.size = 85;
+    world->venus.size = 220;
+    world->saturnus.size = 150;
+    world->sun.size = 920;
+    world->satellite.size = 50;
+
+    scale_model(&world->jupiter.model, 0.4, 0.4, 0.4);
+    scale_model(&world->jupiter_moon.model, 0.2, 0.2, 0.2);
+    scale_model(&world->venus.model, 0.5, 0.5, 0.5);
+    scale_model(&world->saturnus.model, 0.2, 0.2, 0.2);
+    scale_model(&world->sun.model, 2, 2, 2);
     scale_model(&world->satellite.model, 12, 12, 12);
 
-    //Load the skybox texture.
-    world->skybox.texture = load_texture("textures\\sky.jpg");
+    world->skybox.texture = load_texture("textures\\sky.png");
+    world->skybox.size = 6000;
 
-    //Storing bounding-box coordinates in each model
-    calc_bounding_box(&world->jupiter.model);
-    calc_bounding_box(&world->jupiter_moon.model);
-    calc_bounding_box(&world->venus.model);
-    calc_bounding_box(&world->saturnus.model);
-    calc_bounding_box(&world->sun.model);
-    world->sun.model.box.diagonal_length-=10; // small optimalization for better demonstration.
+    for (int i = 0; i < 6; i++) {
+        calc_bounding_box(&world->planets[i]->model);
+    }
+    world->sun.model.box.diagonal_length -= 10; // small optimalization for better demonstration.
+
 }
 
 double vector_length(double min_x, double min_y, double min_z, double max_x, double max_y, double max_z) {

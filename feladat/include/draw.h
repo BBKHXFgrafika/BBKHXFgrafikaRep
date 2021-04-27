@@ -10,33 +10,32 @@ typedef struct Rotate {
     double jupiter_moon_rotation;
     double venus_rotation;
     double saturnus_rotation;
-    double satellite_rotation;
     double sun_rotation;
+    double satellite_rotation;
+    double *planets[6];
 } Rotate;
 
-typedef union Position {
-    struct {
-        double x;
-        double y;
-        double z;
-    };
-    double Position[3];
+typedef struct Position {
+    double x;
+    double y;
+    double z;
 } Position;
 
-typedef union Move {
-    struct {
-        Position jupiter;
-        Position jupiter_moon;
-        Position venus;
-        Position saturnus;
-        Position sun;
-        Position satellite;
-    };
-    Position Move[6];
+typedef struct Move {
+    Position jupiter;
+    Position jupiter_moon;
+    Position venus;
+    Position saturnus;
+    Position sun;
+    Position satellite;
+    Position *planets[6];
+    double degree1;
+    double degree3;
+    double degree4;
 } Move;
 
-extern Rotate rotate;
-extern Move move;
+Rotate rotate;
+Move move;
 
 //Draw the model.
 void draw_model(const struct Model *model);
@@ -61,5 +60,7 @@ void display();
 void set_satellite_led_working_time();
 
 void idle();
+
+void init_draw(Rotate *rotate);
 
 #endif

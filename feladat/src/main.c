@@ -2,13 +2,6 @@
 #include "draw.h"
 #include "controller.h"
 
-World world;
-Rotate rotate;
-Move move;
-Camera camera;
-Action action;
-Data data;
-
 void set_callbacks() {
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
@@ -23,7 +16,10 @@ void set_callbacks() {
 }
 
 void initialize() {
+    action.rotate_planets_in_galaxy = true;
     camera.camera_speed = 70;
+    init_controller(&move);
+    init_draw(&rotate);
     set_callbacks();
     init_camera(&camera);
     glMatrixMode(GL_MODELVIEW);
@@ -31,7 +27,7 @@ void initialize() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_LIGHTING);
-    data.help = load_texture("textures//help.png");
+    action.help = load_texture("..//textures//help.png");
     init_entities(&world);
     glEnable(GL_TEXTURE_2D);
 }

@@ -6,18 +6,20 @@
 #define DIST_VENUS 6000;
 #define DIST_SAT  2000;
 
-bool inside_gravity_field = false;
-int satellite;
-double degree1;
-double degree3;
-double degree4;
+void init_controller(Move *move) {
+    Position *planetsToAdd[6] = {&move->jupiter, &move->jupiter_moon, &move->venus,
+                                 &move->saturnus, &move->sun, &move->satellite};
+    memcpy(move->planets, planetsToAdd, sizeof(planetsToAdd));
+    for (int i = 0; i < 3; i++) {  action.light_ambient[i] = 0.5; }
+}
 
 void movement_of_objects(Move *move, Action *action, World *world) {
+    bool inside_gravity_field = false;
 
     // Jupiter + its moon
     if (action->move_jupiter_plus_moon_in_galaxy == TRUE) {
-        degree1 += 0.4;
-        double angle = degree_to_radian(degree1);
+        move->degree1 += 0.4;
+        double angle = degree_to_radian(move->degree1);
         move->jupiter.x = cos(angle) * DIST_JUP;
         move->jupiter.y = sin(angle) * DIST_JUP;
         move->jupiter.z = 0;
@@ -35,8 +37,8 @@ void movement_of_objects(Move *move, Action *action, World *world) {
 
     // Venus
     if (action->move_venus_in_galaxy == TRUE) {
-        degree3 += 0.2;
-        double angle = degree_to_radian(degree3);
+        move->degree3 += 0.2;
+        double angle = degree_to_radian(move->degree3);
         move->venus.x = cos(angle) * DIST_VENUS;
         move->venus.y = sin(angle) * DIST_VENUS;
         move->venus.z = 0;
@@ -49,8 +51,8 @@ void movement_of_objects(Move *move, Action *action, World *world) {
 
     // Saturnus
     if (action->move_saturnus_in_galaxy == TRUE) {
-        degree4 += 0.3;
-        double angle = degree_to_radian(degree4);
+        move->degree4 += 0.3;
+        double angle = degree_to_radian(move->degree4);
         move->saturnus.x = cos(angle) * DIST_SAT;
         move->saturnus.y = sin(angle) * DIST_SAT;
         move->saturnus.z = 0;
@@ -62,7 +64,7 @@ void movement_of_objects(Move *move, Action *action, World *world) {
     }
 
     if (action->call_satellite == TRUE && move->satellite.x < 6000) {
-        if (satellite == 0) {
+        if (action->satellite_is_moving == 0) {
             move->satellite.x = -6000;
             move->satellite.y = 1500;
             move->satellite.z = 400;
@@ -72,59 +74,41 @@ void movement_of_objects(Move *move, Action *action, World *world) {
         int i;
         for (i = 0; i <= 4; i++) {
             if (is_point_inside_spheres(move->satellite.x, move->satellite.y, move->satellite.z,
-                                        move->Move[i].x, move->Move[i].y, move->Move[i].z,
-                                        world->World[i].model.box.diagonal_length + 10)) {
+                                        move->planets[i]->x, move->planets[i]->y, move->planets[i]->z,
+                                        world->planets[i]->model.box.diagonal_length + 10)) {
                 inside_gravity_field = true;
                 break;
             }
         }
 
-        // If sat is inside on of the gravitiy fields.
         if (inside_gravity_field) {
             Vertex distance_vector = vector_from_two_vertex(move->satellite.x, move->satellite.y, move->satellite.z,
-                                                            move->Move[i].x, move->Move[i].y, move->Move[i].z);
+                                                            move->planets[i]->x, move->planets[i]->y,
+                                                            move->planets[i]->z);
+            if (i != 4) { // every planet except Sun
+                move->satellite.x += 1.0;
 
-            // setting up the effects of gravity fields of the planets, taking the direction
-            // where the satellite comes from also in consideration. Index of "i" indicates a specific planet.
-            switch (i) {
-                case 0:  // Planet 1 - Jupiter
-                case 1:  // Planet 2 - Moon of Jupiter
-
-                    if (distance_vector.y <= 0) {  // if satellite goes against the rotation of the first two planets
-                        move->satellite.x += 1.0;  // satelitte losts more speed on the X axis than is the 'else' case
-                        move->satellite.y -= 1;
-                    } else {
-                        move->satellite.x += 1.5; // if satellite goes parellel with the rotation of the first two planets
-                        move->satellite.y += 1;
-                    }
-                    break;
-                case 2: // Venus
-                case 3: // Saturnus
-                    if (distance_vector.y <= 0) {
-                        move->satellite.x += 1.5;
-                        move->satellite.y -= 1;
-                    } else {
-                        move->satellite.x += 1.0;
-                        move->satellite.y += 1;
-                    }
-                    break;
-
-                case 4: // Sun
-                    move->satellite.x += 5;
-                    move->satellite.y += 0.3;
-                    break;
+                if (distance_vector.y <= 0) {
+                    move->satellite.y -= 1;
+                } else {
+                    move->satellite.y += 1;
+                }
+            } else { // Sun
+                move->satellite.x += 5;
+                move->satellite.y += 0.3;
             }
-            inside_gravity_field = false;  // It gives the possibility to let the satellite get the normal speed in the next iteration.
+
+            inside_gravity_field = false;
         } else {
             move->satellite.x += 7;
         }
 
-        satellite = 1;
+        action->satellite_is_moving = 1;
 
     } else if (action->call_satellite == TRUE && move->satellite.x >= 6000) {
         move->satellite.x = -20000;
         action->call_satellite = FALSE;
-        satellite = 0;
+        action->satellite_is_moving = 0;
     } else if (action->call_satellite == FALSE) {
         move->satellite.x = -20000;
     }
@@ -141,33 +125,32 @@ void rotation_of_objects(Action *action, Rotate *rotate) {
     rotate->satellite_rotation += 0.5;
 }
 
-
 void specialFunc(int key, int x, int y) {
     switch (key) {
         case GLUT_KEY_F1:
-            if (data.help_on) {
-                data.help_on = 0;
+            if (action.help_on) {
+                action.help_on = 0;
             } else {
-                data.help_on = 1;
+                action.help_on = 1;
             }
     }
 }
 
 void mouse_handler(int button, int state, int x, int y) {
-    data.mouse_x = x;
-    data.mouse_y = y;
+    window.mouse_x = x;
+    window.mouse_y = y;
 }
 
 void motion_handler(int x, int y) {
     double horizontal, vertical;
 
-    horizontal = data.mouse_x - x;
-    vertical = data.mouse_y - y;
+    horizontal = window.mouse_x - x;
+    vertical = window.mouse_y - y;
 
     rotate_camera(&camera, horizontal, vertical);
 
-    data.mouse_x = x;
-    data.mouse_y = y;
+    window.mouse_x = x;
+    window.mouse_y = y;
 
     glutPostRedisplay();
 }
@@ -175,22 +158,22 @@ void motion_handler(int x, int y) {
 void key_handler(unsigned char key, int x, int y) {
     switch (key) {
         case 'w':
-            action.move_forward = TRUE;
+            camera.move_forward = TRUE;
             break;
         case 's':
-            action.move_backward = TRUE;
+            camera.move_backward = TRUE;
             break;
         case 'a':
-            action.step_left = TRUE;
+            camera.step_left = TRUE;
             break;
         case 'd':
-            action.step_right = TRUE;
+            camera.step_right = TRUE;
             break;
         case 'c':
-            action.move_down = TRUE;
+            camera.move_down = TRUE;
             break;
         case 32:
-            action.move_up = TRUE;
+            camera.move_up = TRUE;
             break;
         case 'q':
             if (action.rotate_planets_in_galaxy == FALSE) {
@@ -231,22 +214,22 @@ void key_handler(unsigned char key, int x, int y) {
 void key_up_handler(unsigned char key, int x, int y) {
     switch (key) {
         case 'w':
-            action.move_forward = FALSE;
+            camera.move_forward = FALSE;
             break;
         case 's':
-            action.move_backward = FALSE;
+            camera.move_backward = FALSE;
             break;
         case 'a':
-            action.step_left = FALSE;
+            camera.step_left = FALSE;
             break;
         case 'd':
-            action.step_right = FALSE;
+            camera.step_right = FALSE;
             break;
         case 'c':
-            action.move_down = FALSE;
+            camera.move_down = FALSE;
             break;
         case 32:
-            action.move_up = FALSE;
+            camera.move_up = FALSE;
             break;
         case '+':
             action.increase_light = FALSE;
