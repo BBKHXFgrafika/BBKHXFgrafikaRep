@@ -27,7 +27,7 @@ void initialize() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_LIGHTING);
-    action.help = load_texture("..//textures//help.png");
+    action.help = load_texture("textures//help.png");
     init_entities(&world);
     glEnable(GL_TEXTURE_2D);
 }
