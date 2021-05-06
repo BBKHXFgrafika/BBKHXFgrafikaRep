@@ -5,7 +5,8 @@ Használat:
   A + és - billentyűkkel lehetséges állítania fényt 
   A Q billenytűvel a bolygók forgását lehet megállítani vagy elindítani
   Az E billenytűvel a bolygók keringését lehet megállítani vagy elindítani
-  Az F billentyűvel a műholdat lehet elindítani
+  Az F billentyűvel 3db műholdat lehet elindítani
+  A T betűvel a köd effektet lehet be és kikapcsolni
   Az F1 billentyűvel a segítséget lehet előhozni!![bemutato 2](https://user-images.githubusercontent.com/72191543/114729151-027ac480-9d40-11eb-828e-52e73c41232e.PNG)
 ![Uploading bemutato1.PNG…]()
 
